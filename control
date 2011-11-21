@@ -1,0 +1,9 @@
+Package: me.devbug.smoothcoverflow
+Name: SmoothCoverFlow
+Depends: mobilesubstrate, firmware (>= 5.0)
+Version: 0.0.1
+Architecture: iphoneos-arm
+Description: Get smooth performance of Cover Flow
+Maintainer: deVbug <devbug@devbug.me>
+Author: deVbug <devbug@devbug.me>
+Section: Tweaks

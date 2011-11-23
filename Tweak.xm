@@ -16,7 +16,7 @@ enum {
 	DeviceTypeiPad				= 1 << 4				// 00010000(2)
 };
 
-DeviceType this_device = DeviceTypeiPhone4;
+static DeviceType this_device = DeviceTypeiPhone4;
 
 
 @interface MPImageCacheRequest : NSOperation

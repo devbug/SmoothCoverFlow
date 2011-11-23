@@ -1,1 +1,7 @@
-{ Filter = { Bundles = ( "com.apple.mobileipod" ); }; }
+{
+	Filter = {
+		Bundles = (
+			"com.apple.mobileipod",
+		);
+	};
+}

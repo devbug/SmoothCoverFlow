@@ -54,16 +54,23 @@ static DeviceType this_device = DeviceTypeiPhone4;
 
 %hook MPImageCacheRequest
 
-// quality 0 : default size is (128, 128)
-// quality 1 : default size is (256, 256)
+// Album view 
+// low quality	: (55, 55)
+// high quality	: (88, 88)
+//
+// Coverflow and Playback view
+// low quality (0)	: default size is (128, 128)
+// high quality (1)	: default size is (256, 256)
 - (void)setFinalSize:(CGSize)size {
-	size.width	/= 2;
-	size.height	/= 2;
+	if (size.width > 90 || size.height > 90) {
+		size.width	/= 2;
+		size.height	/= 2;
+	}
 	%orig;
 }
 
 - (UIImage *)copyImageFromImage:(UIImage *)img {
-	if ([self finalSize].height > 100) {					// high quality
+	if ([self finalSize].height > 90) {						// high quality
 		if ([NSStringFromClass([self class]) isEqualToString:@"IUMediaItemCoverFlowImageRequest"]) {
 			if ((this_device & DeviceTypeiPhone3Gs) != 0)		// no retina
 				return [self _newBitmapImageFromImage:img finalSize:CGSizeMake(256,256)];

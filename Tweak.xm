@@ -55,6 +55,8 @@ static DeviceType this_device = DeviceTypeiPhone4;
 
 static NSMutableArray *cachedImageKey = nil;
 
+static NSLock *lock = nil;
+
 
 
 // http://alones.kr/1384
@@ -164,9 +166,11 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 // low quality (0)	: default size is (128, 128)
 // high quality (1)	: default size is (256, 256)
 - (void)setFinalSize:(CGSize)size {
-	if (size.width > 90 || size.height > 90) {
-		size.width	/= 2;
-		size.height	/= 2;
+	if ([NSStringFromClass([self class]) isEqualToString:@"IUMediaItemCoverFlowImageRequest"]) {
+		if (size.width > 90 || size.height > 90) {
+			size.width	/= 2;
+			size.height	/= 2;
+		}
 	}
 	%orig;
 }
@@ -174,13 +178,31 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 - (UIImage *)copyImageFromImage:(UIImage *)img {
 	if ([self finalSize].height > 90) {						// high quality
 		if ([NSStringFromClass([self class]) isEqualToString:@"IUMediaItemCoverFlowImageRequest"]) {
-			if ((this_device & DeviceTypeNoRetina) != 0)		// no retina
-				return [self _newBitmapImageFromImage:img finalSize:CGSizeMake(256,256)];
-			else if ((this_device & DeviceTypeRetina) != 0)	// retina
-				return [self _newBitmapImageFromImage:img finalSize:CGSizeMake(170,170)];
+			if ((this_device & DeviceTypeNoRetina) != 0) {		// no retina
+				if (img.size.width > 256 || img.size.height > 256) {
+					[lock lock];
+					UIImage *rtn = [self _newBitmapImageFromImage:img finalSize:CGSizeMake(256,256)];
+					[lock unlock];
+					return rtn;
+				}
+			}
+			else if ((this_device & DeviceTypeRetina) != 0) {	// retina
+				if (img.size.width > 170 || img.size.height > 170) {
+					[lock lock];
+					UIImage *rtn = [self _newBitmapImageFromImage:img finalSize:CGSizeMake(170,170)];
+					[lock unlock];
+					return rtn;
+				}
+			}
 		} else {	// NSStringFromClass([self class]) == @"MPMediaItemImageRequest"
-			if ((this_device & (DeviceTypeNoRetina | DeviceTypeRetina)) != 0)
-				return [self _newBitmapImageFromImage:img finalSize:CGSizeMake(320,320)];
+			if ((this_device & (DeviceTypeNoRetina | DeviceTypeRetina)) != 0) {
+				if (img.size.width > 320 || img.size.height > 320) {
+					[lock lock];
+					UIImage *rtn = [self _newBitmapImageFromImage:img finalSize:CGSizeMake(320,320)];
+					[lock unlock];
+					return rtn;
+				}
+			}
 		}
 	}
 	
@@ -203,7 +225,9 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 		
 		if (cache == nil || image == nil) {
 			image = [self imageWithSize:size];
+			[lock lock];
 			image = resizedImage(image, size);
+			[lock unlock];
 			
 			if (cache && image) {
 				if (cachedImageKey.count >= MAX_CACHES) {
@@ -261,6 +285,7 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 	free(name);
 	
 	cachedImageKey = [[NSMutableArray alloc] init];
+	lock = [[NSLock alloc] init];
 	
 	%init;
 }

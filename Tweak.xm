@@ -190,14 +190,14 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 	
 	if (self.bounds.size.width > size.width || self.bounds.size.height > size.height) {
 		MPImageCache *cache = [objc_getClass("MPImageCache") sharedImageCache];
-		UIImage *image = [cache _cachedImageForKey:[NSString stringWithFormat:@"%ld", itemPersistentID]];
+		UIImage *image = [cache _cachedImageForKey:[NSString stringWithFormat:@"%llu", itemPersistentID]];
 		
 		if (cache == nil || image == nil) {
 			image = [self imageWithSize:size];
 			image = resizedImage(image, size);
 			
 			if (cache)
-				[cache _cacheImage:image forKey:[NSString stringWithFormat:@"%ld", itemPersistentID]];
+				[cache _cacheImage:image forKey:[NSString stringWithFormat:@"%llu", itemPersistentID]];
 		}
 		
 		if (image) {

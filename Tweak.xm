@@ -196,7 +196,7 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 			image = [self imageWithSize:size];
 			image = resizedImage(image, size);
 			
-			if (cache)
+			if (cache && image)
 				[cache _cacheImage:image forKey:[NSString stringWithFormat:@"%llu", itemPersistentID]];
 		}
 		

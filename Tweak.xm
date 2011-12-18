@@ -126,7 +126,9 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 - (UIImage *)albumImageWithSize:(struct CGSize)size;
 @end
 
-@interface MPConcreteMediaItemArtwork : MPMediaItemArtwork
+@interface MPConcreteMediaItemArtwork : MPMediaItemArtwork {
+	unsigned long long _itemPersistentID;
+}
 - (struct CGRect)bounds;
 - (UIImage *)coverFlowImageWithSize:(struct CGSize)size;
 - (NSData *)imageDataWithSize:(struct CGSize)size atPlaybackTime:(double)time;
@@ -134,6 +136,12 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 - (NSData *)albumImageDataWithSize:(struct CGSize)size;
 - (UIImage *)albumImageWithSize:(struct CGSize)size;
 - (void)_fixupBoundsForImage:(id)image;
+@end
+
+@interface MPImageCache : NSObject
++ (id)sharedImageCache;
+- (UIImage *)_cachedImageForKey:(NSString *)key;
+- (void)_cacheImage:(UIImage *)image forKey:(NSString *)key;
 @end
 
 
@@ -178,11 +186,19 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 
 // TO DO : need to more optimize
 - (id)imageDataWithSize:(struct CGSize)size atPlaybackTime:(double)time {
-	// I don't know why NSLog needs
-	NSLog(@"Smoothing AlbumArt");
+	unsigned long long itemPersistentID = MSHookIvar<unsigned long long>(self, "_itemPersistentID");
+	
 	if (self.bounds.size.width > size.width || self.bounds.size.height > size.height) {
-		UIImage *image = [self imageWithSize:size];
-		image = resizedImage(image, size);}
+		MPImageCache *cache = [objc_getClass("MPImageCache") sharedImageCache];
+		UIImage *image = [cache _cachedImageForKey:[NSString stringWithFormat:@"%ld", itemPersistentID]];
+		
+		if (cache == nil || image == nil) {
+			image = [self imageWithSize:size];
+			image = resizedImage(image, size);
+			
+			if (cache)
+				[cache _cacheImage:image forKey:[NSString stringWithFormat:@"%ld", itemPersistentID]];
+		}
 		
 		if (image) {
 			//NSLog(@"%@", NSStringFromCGSize([image size]));

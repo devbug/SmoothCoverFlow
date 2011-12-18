@@ -26,10 +26,14 @@
 
 #import <UIKit/UIKit.h>
 #import <MediaPlayer/MediaPlayer.h>
+#import <AppSupport/CPLRUDictionary.h>
 
 #include <sys/types.h>
 #include <sys/sysctl.h>
 
+
+
+#define MAX_CACHES				5
 
 
 typedef NSUInteger DeviceType;
@@ -48,6 +52,8 @@ enum {
 };
 
 static DeviceType this_device = DeviceTypeiPhone4;
+
+static NSMutableArray *cachedImageKey = nil;
 
 
 
@@ -138,7 +144,9 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 - (void)_fixupBoundsForImage:(id)image;
 @end
 
-@interface MPImageCache : NSObject
+@interface MPImageCache : NSObject {
+	CPLRUDictionary *_cachedImages;
+}
 + (id)sharedImageCache;
 - (UIImage *)_cachedImageForKey:(NSString *)key;
 - (void)_cacheImage:(UIImage *)image forKey:(NSString *)key;
@@ -190,14 +198,23 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 	
 	if (self.bounds.size.width > size.width || self.bounds.size.height > size.height) {
 		MPImageCache *cache = [objc_getClass("MPImageCache") sharedImageCache];
-		UIImage *image = [cache _cachedImageForKey:[NSString stringWithFormat:@"%llu", itemPersistentID]];
+		NSString *key = [NSString stringWithFormat:@"%llu", itemPersistentID];
+		UIImage *image = [cache _cachedImageForKey:key];
 		
 		if (cache == nil || image == nil) {
 			image = [self imageWithSize:size];
 			image = resizedImage(image, size);
 			
-			if (cache && image)
-				[cache _cacheImage:image forKey:[NSString stringWithFormat:@"%llu", itemPersistentID]];
+			if (cache && image) {
+				if (cachedImageKey.count >= MAX_CACHES) {
+					CPLRUDictionary *cachedImages = MSHookIvar<CPLRUDictionary *>(cache, "_cachedImages");
+					NSString *tmpKey = [cachedImageKey objectAtIndex:0];
+					[cachedImages removeObjectForKey:tmpKey];
+					[cachedImageKey removeObjectAtIndex:0];
+				}
+				[cache _cacheImage:image forKey:key];
+				[cachedImageKey addObject:key];
+			}
 		}
 		
 		if (image) {
@@ -242,6 +259,8 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 		this_device = DeviceTypeUnsupported;
 	
 	free(name);
+	
+	cachedImageKey = [[NSMutableArray alloc] init];
 	
 	%init;
 }

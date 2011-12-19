@@ -55,8 +55,6 @@ static DeviceType this_device = DeviceTypeiPhone4;
 
 static NSMutableArray *cachedImageKey = nil;
 
-static NSLock *lock = nil;
-
 
 
 // http://alones.kr/1384
@@ -152,6 +150,30 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 + (id)sharedImageCache;
 - (UIImage *)_cachedImageForKey:(NSString *)key;
 - (void)_cacheImage:(UIImage *)image forKey:(NSString *)key;
+- (void)loadImageForRequest:(id)arg1 asynchronously:(BOOL)arg2 completionHandler:(id)arg3;
+@end
+
+@interface UIApplication (Private)
+- (BOOL)_isActivated;
+@end
+
+@interface IUMediaQueryNowPlayingItem : NSObject // MPAVItem
+- (MPMediaItem *)mediaItem;
+- (id)initWithMediaItem:(MPMediaItem *)mediaItem;
+@end
+@interface IUNowPlayingObserver : NSObject
+- (IUMediaQueryNowPlayingItem *)_currentItem;
+@end
+@interface IUPlaybackViewController : UIViewController
+- (void)_reloadForTransitionFromItem:(id)arg1 toItem:(id)arg2 animated:(BOOL)arg3;
+@end
+@interface IUMixedPlaybackViewController : IUPlaybackViewController
+- (void)setItem:(id)arg1 animated:(BOOL)arg2;
+@end
+@interface MediaApplication {
+	IUNowPlayingObserver *_nowPlayingObserver;
+}
+- (UIViewController *)IUTopViewController;
 @end
 
 
@@ -166,6 +188,13 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 // low quality (0)	: default size is (128, 128)
 // high quality (1)	: default size is (256, 256)
 - (void)setFinalSize:(CGSize)size {
+	if (![[UIApplication sharedApplication] _isActivated]) {
+		if (size.width > 90 || size.height > 90) {
+			%orig(CGSizeMake(64,64));
+			return;
+		}
+	}
+	
 	if ([NSStringFromClass([self class]) isEqualToString:@"IUMediaItemCoverFlowImageRequest"]) {
 		if (size.width > 90 || size.height > 90) {
 			size.width	/= 2;
@@ -176,31 +205,25 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 }
 
 - (UIImage *)copyImageFromImage:(UIImage *)img {
+	if (![[UIApplication sharedApplication] _isActivated])
+		return %orig;
+	
 	if ([self finalSize].height > 90) {						// high quality
 		if ([NSStringFromClass([self class]) isEqualToString:@"IUMediaItemCoverFlowImageRequest"]) {
 			if ((this_device & DeviceTypeNoRetina) != 0) {		// no retina
 				if (img.size.width > 256 || img.size.height > 256) {
-					[lock lock];
-					UIImage *rtn = [self _newBitmapImageFromImage:img finalSize:CGSizeMake(256,256)];
-					[lock unlock];
-					return rtn;
+					return [self _newBitmapImageFromImage:img finalSize:CGSizeMake(256,256)];
 				}
 			}
 			else if ((this_device & DeviceTypeRetina) != 0) {	// retina
 				if (img.size.width > 170 || img.size.height > 170) {
-					[lock lock];
-					UIImage *rtn = [self _newBitmapImageFromImage:img finalSize:CGSizeMake(170,170)];
-					[lock unlock];
-					return rtn;
+					return [self _newBitmapImageFromImage:img finalSize:CGSizeMake(170,170)];
 				}
 			}
 		} else {	// NSStringFromClass([self class]) == @"MPMediaItemImageRequest"
 			if ((this_device & (DeviceTypeNoRetina | DeviceTypeRetina)) != 0) {
 				if (img.size.width > 320 || img.size.height > 320) {
-					[lock lock];
-					UIImage *rtn = [self _newBitmapImageFromImage:img finalSize:CGSizeMake(320,320)];
-					[lock unlock];
-					return rtn;
+					return [self _newBitmapImageFromImage:img finalSize:CGSizeMake(320,320)];
 				}
 			}
 		}
@@ -214,20 +237,19 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 
 %hook MPConcreteMediaItemArtwork
 
-// TO DO : need to more optimize
 - (id)imageDataWithSize:(struct CGSize)size atPlaybackTime:(double)time {
-	unsigned long long itemPersistentID = MSHookIvar<unsigned long long>(self, "_itemPersistentID");
+	if ([[UIApplication sharedApplication] _isActivated])
+		return %orig;
 	
 	if (self.bounds.size.width > size.width || self.bounds.size.height > size.height) {
+		unsigned long long itemPersistentID = MSHookIvar<unsigned long long>(self, "_itemPersistentID");
 		MPImageCache *cache = [objc_getClass("MPImageCache") sharedImageCache];
 		NSString *key = [NSString stringWithFormat:@"%llu", itemPersistentID];
 		UIImage *image = [cache _cachedImageForKey:key];
 		
 		if (cache == nil || image == nil) {
 			image = [self imageWithSize:size];
-			[lock lock];
 			image = resizedImage(image, size);
-			[lock unlock];
 			
 			if (cache && image) {
 				if (cachedImageKey.count >= MAX_CACHES) {
@@ -253,6 +275,20 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 	}
 	
 	return %orig;
+}
+
+%end
+
+
+%hook MediaApplication
+
+- (void)applicationDidBecomeActive:(UIApplication *)application {
+	%orig;
+	IUNowPlayingObserver *nowplaying = MSHookIvar<IUNowPlayingObserver *>(self, "_nowPlayingObserver");
+	if ([self.IUTopViewController respondsToSelector:@selector(_reloadForTransitionFromItem:toItem:animated:)]) {
+		[(IUPlaybackViewController *)(self.IUTopViewController) _reloadForTransitionFromItem:nowplaying._currentItem toItem:nil animated:NO];
+		[(IUPlaybackViewController *)(self.IUTopViewController) _reloadForTransitionFromItem:nil toItem:nowplaying._currentItem animated:NO];
+	}
 }
 
 %end
@@ -285,7 +321,6 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 	free(name);
 	
 	cachedImageKey = [[NSMutableArray alloc] init];
-	lock = [[NSLock alloc] init];
 	
 	%init;
 }

@@ -3,7 +3,7 @@ Name: SmoothCoverFlow
 Depends: mobilesubstrate, firmware (>= 5.0)
 Version: 0.0.1
 Architecture: iphoneos-arm
-Description: Get smooth performance of Cover Flow
+Description: Get smooth performance of displaying album arts and Coverflow
 Maintainer: deVbug <devbug@devbug.me>
 Author: deVbug <devbug@devbug.me>
 Section: Tweaks

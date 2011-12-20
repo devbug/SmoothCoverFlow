@@ -58,6 +58,7 @@ static NSMutableArray *cachedImageKey = nil;
 
 
 // http://alones.kr/1384
+// Copyright 2009 삼성전자. All rights reserved.
 UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 {
 	CGSize newSize2 = CGSizeMake(newSize.width * ((this_device & DeviceTypeRetina) != 0 ? 2 : 1), newSize.height * ((this_device & DeviceTypeRetina) != 0 ? 2 : 1));
@@ -170,7 +171,7 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 @interface IUMixedPlaybackViewController : IUPlaybackViewController
 - (void)setItem:(id)arg1 animated:(BOOL)arg2;
 @end
-@interface MediaApplication {
+@interface MediaApplication : NSObject {
 	IUNowPlayingObserver *_nowPlayingObserver;
 }
 - (UIViewController *)IUTopViewController;
@@ -274,6 +275,22 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 		return nil;
 	}
 	
+	return %orig;
+}
+
+%end
+
+
+%hook IUNowPlayingAlbumFrontViewController
+
+- (id)copyOverlayViewForTransitionToItem:(IUMediaQueryNowPlayingItem *)nowPlayingItem {
+	if (nowPlayingItem == nil) {
+		MediaApplication *appDelegate = [[UIApplication sharedApplication] delegate];
+		if ([appDelegate respondsToSelector:@selector(IUTopViewController)]) {
+			IUNowPlayingObserver *nowplaying = MSHookIvar<IUNowPlayingObserver *>(appDelegate, "_nowPlayingObserver");
+			return %orig(nowplaying._currentItem);
+		}
+	}
 	return %orig;
 }
 

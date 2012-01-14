@@ -1,7 +1,7 @@
 Package: me.devbug.smoothcoverflow
 Name: SmoothCoverFlow
 Depends: mobilesubstrate, firmware (>= 5.0)
-Version: 0.0.1
+Version: 0.0.2
 Architecture: iphoneos-arm
 Description: Get smooth performance of displaying album arts and Coverflow
 Maintainer: deVbug <devbug@devbug.me>

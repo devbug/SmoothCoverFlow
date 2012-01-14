@@ -177,6 +177,9 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 - (UIViewController *)IUTopViewController;
 @end
 
+@interface MPPlaybackTitlesView : UIView
+@end
+
 
 
 %hook MPImageCacheRequest
@@ -301,11 +304,22 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 
 - (void)applicationDidBecomeActive:(UIApplication *)application {
 	%orig;
-	IUNowPlayingObserver *nowplaying = MSHookIvar<IUNowPlayingObserver *>(self, "_nowPlayingObserver");
+	
 	if ([self.IUTopViewController respondsToSelector:@selector(_reloadForTransitionFromItem:toItem:animated:)]) {
+		IUNowPlayingObserver *nowplaying = MSHookIvar<IUNowPlayingObserver *>(self, "_nowPlayingObserver");
 		[(IUPlaybackViewController *)(self.IUTopViewController) _reloadForTransitionFromItem:nowplaying._currentItem toItem:nil animated:NO];
 		[(IUPlaybackViewController *)(self.IUTopViewController) _reloadForTransitionFromItem:nil toItem:nowplaying._currentItem animated:NO];
 	}
+}
+
+%end
+
+
+%hook MPPlaybackTitlesView
+
+- (void)layoutSubviews {
+	self.frame = CGRectMake(55, 2, 210, 40);
+	%orig;
 }
 
 %end

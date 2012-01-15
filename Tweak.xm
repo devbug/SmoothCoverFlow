@@ -169,6 +169,7 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 - (void)_reloadForTransitionFromItem:(id)arg1 toItem:(id)arg2 animated:(BOOL)arg3;
 @end
 @interface IUMixedPlaybackViewController : IUPlaybackViewController
+- (BOOL)isShowingCoverFlow;
 - (void)setItem:(id)arg1 animated:(BOOL)arg2;
 @end
 @interface MediaApplication : NSObject {
@@ -306,9 +307,13 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 	%orig;
 	
 	if ([self.IUTopViewController respondsToSelector:@selector(_reloadForTransitionFromItem:toItem:animated:)]) {
-		IUNowPlayingObserver *nowplaying = MSHookIvar<IUNowPlayingObserver *>(self, "_nowPlayingObserver");
-		[(IUPlaybackViewController *)(self.IUTopViewController) _reloadForTransitionFromItem:nowplaying._currentItem toItem:nil animated:NO];
-		[(IUPlaybackViewController *)(self.IUTopViewController) _reloadForTransitionFromItem:nil toItem:nowplaying._currentItem animated:NO];
+		BOOL isShowingCoverFlow = [self.IUTopViewController respondsToSelector:@selector(isShowingCoverFlow)];
+		if ((isShowingCoverFlow == NO) || 
+			(isShowingCoverFlow == YES && [(IUMixedPlaybackViewController *)(self.IUTopViewController) isShowingCoverFlow] == NO)) {
+			IUNowPlayingObserver *nowplaying = MSHookIvar<IUNowPlayingObserver *>(self, "_nowPlayingObserver");
+			[(IUPlaybackViewController *)(self.IUTopViewController) _reloadForTransitionFromItem:nowplaying._currentItem toItem:nil animated:NO];
+			[(IUPlaybackViewController *)(self.IUTopViewController) _reloadForTransitionFromItem:nil toItem:nowplaying._currentItem animated:NO];
+		}
 	}
 }
 

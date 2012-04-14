@@ -2,7 +2,7 @@
 //  SmoothCoverFlow
 //  
 //  
-//  Copyright (c) 2011 deVbug
+//  Copyright (c) 2011-2012 deVbug
 //  
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -39,16 +39,19 @@
 typedef NSUInteger DeviceType;
 enum {
 	DeviceTypeUnsupported		= 0,					// 00000000(2)
+											// no retina
 	DeviceTypeiPodTouch3G		= 1 << 0,				// 00000001(2)
 	DeviceTypeiPhone3Gs			= 1 << 1,				// 00000010(2)
-	DeviceTypeiPodTouch4G		= 1 << 2,				// 00000100(2)
-	DeviceTypeiPhone4			= 1 << 3,				// 00001000(2)
-	DeviceTypeiPad				= 1 << 4,				// 00010000(2)
+	DeviceTypeiPad				= 1 << 2,				// 00000100(2)
+											// retina
+	DeviceTypeiPodTouch4G		= 1 << 3,				// 00001000(2)
+	DeviceTypeiPhone4			= 1 << 4,				// 00010000(2)
+	DeviceTypeiPad3G			= 1 << 5,				// 00100000(2)
 	
+											// 
 	DeviceTypeUnknown			= 0,					// 00000000(2)
-	DeviceTypeNoRetina			= 3 << 1,				// 00000011(2)
-	DeviceTypeRetina			= 3 << 2,				// 00001100(2)
-	//DeviceTypeNormaliPad		= 3 << 4				// 00110000(2)
+	DeviceTypeNoRetina			= 7 << 0,				// 00000111(2)
+	DeviceTypeRetina			= 7 << 3,				// 00111000(2)
 };
 
 static DeviceType this_device = DeviceTypeiPhone4;
@@ -341,7 +344,7 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 		this_device = DeviceTypeiPhone3Gs;
 	else if (strstr(name, "iPod3"))
 		this_device = DeviceTypeiPodTouch3G;
-	else if (strstr(name, "iPad"))
+	else if (strstr(name, "iPad1") || strstr(name, "iPad2"))
 		this_device = DeviceTypeiPad;
 	else if (strstr(name, "iPhone1"))
 		this_device = DeviceTypeUnsupported;
@@ -351,6 +354,8 @@ UIImage *resizedImage(UIImage *inImage, CGSize newSize)
 		this_device = DeviceTypeiPodTouch4G;
 	else if (strstr(name, "iPhone"))		// above iPhone 4
 		this_device = DeviceTypeiPhone4;
+	else if (strstr(name, "iPad"))
+		this_device = DeviceTypeUnsupported;
 	else
 		this_device = DeviceTypeUnsupported;
 	
